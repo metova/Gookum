@@ -2,15 +2,22 @@ package com.metova.gookum;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import android.annotation.TargetApi;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+import android.support.v4.app.NotificationCompat;
 
 public abstract class GookumIntentService extends IntentService {
 
+    /**
+     * Constructor simply calls super (IntentService) constructor.
+     * @param classSimpleName Used to name the worker thread, important only for debugging
+     */
     public GookumIntentService(String classSimpleName) {
         super(classSimpleName);
     }
@@ -39,27 +46,49 @@ public abstract class GookumIntentService extends IntentService {
     protected abstract void handleIntentWithGcm(Intent intent, GoogleCloudMessaging gcm);
 
     /**
-     * Creates and sends a basic notification. This method may be ignored if a more complicated
-     * or otherwise different style of notification is required.
-     *
+     * Creates a basic NotificationCompat.Builder, while allowing the user to add to it.
      * @param contentIntent The intent to launch upon clicking the notification
      * @param title The first line of text in the notification
      * @param message The second line of text in the notification
      * @param smallIcon The small icon resource ID, displayed in the status bar and on the left of the notification
-     * @param notificationId The ID by which Android will decide whether to show a new notification or replace an existing notification
      */
-    protected void sendNotification(PendingIntent contentIntent, String title, String message, int smallIcon, int notificationId) {
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+    protected NotificationCompat.Builder createNotificationBuilder(PendingIntent contentIntent, String title,
+            String message, int smallIcon, NotificationCompat.Style style) {
 
-        Notification.Builder builder = new Notification.Builder(this)
+        return new NotificationCompat.Builder(this)
                 .setContentIntent(contentIntent)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setSmallIcon(smallIcon)
-                .setStyle(new Notification.BigTextStyle().bigText(message))
-                .setAutoCancel(true)
-                .setDefaults(Notification.DEFAULT_ALL);
+                .setStyle(style);
+    }
 
-        notificationManager.notify(notificationId, builder.build());
+    /**
+     * Requires API level 16. Creates a basic Notification.Builder, while allowing the user to add to it.
+     * @param contentIntent The intent to launch upon clicking the notification
+     * @param title The first line of text in the notification
+     * @param message The second line of text in the notification
+     * @param smallIcon The small icon resource ID, displayed in the status bar and on the left of the notification
+     */
+    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
+    protected Notification.Builder sendNotification(PendingIntent contentIntent, String title,
+            String message, int smallIcon, Notification.Style style) {
+
+        return new Notification.Builder(this)
+                .setContentIntent(contentIntent)
+                .setContentTitle(title)
+                .setContentText(message)
+                .setSmallIcon(smallIcon)
+                .setStyle(style);
+    }
+
+    /**
+     * Sends the provided Notification.
+     * @param notificationId The ID by which Android will decide whether to show a new notification or replace an existing notification
+     * @param notification The Notification to send
+     */
+    protected void sendNotification(int notificationId, Notification notification) {
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(notificationId, notification);
     }
 }
