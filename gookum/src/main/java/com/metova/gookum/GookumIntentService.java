@@ -30,7 +30,7 @@ public abstract class GookumIntentService extends IntentService {
      */
     @Override
     protected void onHandleIntent(Intent intent) {
-        handleIntentWithGcm(intent, GoogleCloudMessaging.getInstance(this));
+        handleIntentWithGcm(GoogleCloudMessaging.getInstance(this), intent);
 
         GookumBroadcastReceiver.completeWakefulIntent(intent);
     }
@@ -40,10 +40,10 @@ public abstract class GookumIntentService extends IntentService {
      * which handles some boilerplate code. This is where you will parse the content of incoming Intents
      * and send the results as Notifications.
      *
-     * @param intent Incoming intent to handle
      * @param gcm Instance of GoogleCloudMessaging instance to use
+     * @param intent Incoming intent to handle
      */
-    protected abstract void handleIntentWithGcm(Intent intent, GoogleCloudMessaging gcm);
+    protected abstract void handleIntentWithGcm(GoogleCloudMessaging gcm, Intent intent);
 
     /**
      * Creates a basic NotificationCompat.Builder, while allowing the user to add to it.

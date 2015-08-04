@@ -6,6 +6,7 @@ import com.google.android.gms.gcm.GoogleCloudMessaging;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
@@ -20,7 +21,15 @@ public abstract class GookumManager {
 
     public static final int APP_VERSION_NOT_SAVED = -1;
 
+    public static final int GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT = 1900;
+
+    protected static final String GOOKUM_SHARED_PREFERENCES_NAME = "GOOKUM_SHARED_PREFERENCES";
+
+    private static final String PREFERENCE_GCM_REGISTRATION_ID = "GCM_REGISTRATION_ID";
+    private static final String PREFERENCE_SAVED_APP_VERSION = "SAVED_APP_VERSION";
+
     private GoogleCloudMessaging mGcm;
+    private SharedPreferences mSharedPreferences;
 
     /**
      * Allows the user to set the GoogleCloudMessaging instance used for registration and un-registration (rather than
@@ -53,6 +62,46 @@ public abstract class GookumManager {
         } catch (PackageManager.NameNotFoundException e) {
             throw new RuntimeException("Could not get package name: " + e);
         }
+    }
+
+    /**
+     * @return The app instance's stored GCM registration ID
+     */
+    protected String getGcmRegistrationId() {
+        return getGookumSharedPreferences().getString(PREFERENCE_GCM_REGISTRATION_ID, null);
+    }
+
+    /**
+     * @param gcmRegistrationId The app instance's GCM registration ID, to store
+     */
+    protected void setGcmRegistrationId(String gcmRegistrationId) {
+        getGookumSharedPreferences().edit()
+                .putString(PREFERENCE_GCM_REGISTRATION_ID, gcmRegistrationId)
+                .apply();
+    }
+
+    /**
+     * Get the request code used to call startActivityForResult() upon a Google Play Services error.
+     * @return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT
+     */
+    protected int getPlayServicesResolutionRequestCode() {
+        return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT;
+    }
+
+    /**
+     * @return The version number of the app last time it registered to GCM
+     */
+    protected int getSavedAppVersion() {
+        return getGookumSharedPreferences().getInt(PREFERENCE_SAVED_APP_VERSION, APP_VERSION_NOT_SAVED);
+    }
+
+    /**
+     * @param appVersion The current app version, to save for checking in the future
+     */
+    protected void setSavedAppVersion(int appVersion) {
+        getGookumSharedPreferences().edit()
+                .putInt(PREFERENCE_SAVED_APP_VERSION, appVersion)
+                .apply();
     }
 
     /**
@@ -157,7 +206,19 @@ public abstract class GookumManager {
     }
 
     /**
-     * If GCM is not enabled at all, this class won't try to register the app
+     * @return The SharedPreferences file used by GookumManager to store the GcmRegistrationId.
+     */
+    protected SharedPreferences getGookumSharedPreferences() {
+        if (mSharedPreferences == null) {
+            mSharedPreferences = getContext().getSharedPreferences(GOOKUM_SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+        }
+
+        return mSharedPreferences;
+    }
+
+    //region Abstract methods
+    /**
+     * If GCM is not enabled at all, this class won't try to register the app.
      * @return True if push notifications are enabled in general; false otherwise
      */
     protected abstract boolean isGcmEnabled();
@@ -168,34 +229,10 @@ public abstract class GookumManager {
     protected abstract String getGcmSenderId();
 
     /**
-     * @return The request code used to call startActivityForResult() upon a Google Play Services error
-     */
-    protected abstract int getPlayServicesResolutionRequestCode();
-
-    /**
      * @return The Context of the app
      */
     protected abstract Context getContext();
-
-    /**
-     * @return The app instance's stored GCM registration ID
-     */
-    protected abstract String getGcmRegistrationId();
-
-    /**
-     * @param gcmRegistrationId The app instance's GCM registration ID, to store
-     */
-    protected abstract void setGcmRegistrationId(String gcmRegistrationId);
-
-    /**
-     * @return The version number of the app last time it registered to GCM
-     */
-    protected abstract int getSavedAppVersion();
-
-    /**
-     * @param appVersion The current app version, to save for checking in the future
-     */
-    protected abstract void setSavedAppVersion(int appVersion);
+    //endregion
 
     public interface RegisterGcmCallback {
 
