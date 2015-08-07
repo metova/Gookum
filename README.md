@@ -16,30 +16,44 @@ Gookum is an Android library made to simplify the processes of subscribing to an
 ```java
 public class MyIntentService extends GookumIntentService {
 
-    public static final String TAG = MyIntentService.class.getSimpleName();
+    private static final String TAG = MyIntentService.class.getSimpleName();
 
-    public static final int SOME_ACTIVITY_REQUEST_CODE = 1000;
+    public static final int REQUEST_CODE = 14;
 
-    public static final int DEFAULT_NOTIFICATION_ID = 500;
+    private static final String DEFAULT_PUSH_TITLE = "Gookum is real";
+    private static final String DEFAULT_PUSH_MESSAGE = "Check out this push notification";
 
     public MyIntentService() {
-        super(TAG);
+        super(MyIntentService.class.getSimpleName());
     }
-    
+
     @Override
-    protected void handleIntentWithGcm(Intent intent, GoogleCloudMessaging gcm) {
+    protected void handleIntentWithGcm(GoogleCloudMessaging googleCloudMessaging, Intent intent) {
+        Log.v(TAG, "Received push notification: " + intent.hashCode());
+
         Bundle extras = intent.getExtras();
-        String messageType = gcm.getMessageType(intent);
-
-        if (messageType.equals(GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE)) {
-            Intent notificationIntent = new Intent(this, SomeActivity.class);
-            notificationIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            PendingIntent contentIntent = PendingIntent.getActivity(this, SOME_ACTIVITY_REQUEST_CODE,
-                    notificationIntent, PendingIntent.FLAG_ONE_SHOT);
-
-            sendNotification(contentIntent, "Title", "Message", R.drawable.small_icon,
-                    DEFAULT_NOTIFICATION_ID);
+        String message;
+        if (extras == null) {
+            message = DEFAULT_PUSH_MESSAGE;
+        } else {
+            message = extras.getString("message", DEFAULT_PUSH_MESSAGE);
         }
+
+        Intent mainActivityIntent = new Intent(this, MainActivity.class);
+        mainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        PendingIntent contentIntent = PendingIntent.getActivity(this, REQUEST_CODE,
+                mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        int notificationId = (int) System.currentTimeMillis();
+        Notification notification = new Notification.Builder(getApplicationContext())
+                .setContentIntent(contentIntent)
+                .setContentTitle(DEFAULT_PUSH_TITLE)
+                .setContentText(message)
+                .setSmallIcon(R.drawable.ic_launcher)
+                .build();
+
+        sendNotification(notificationId, notification);
     }
 }
 ```
@@ -60,17 +74,14 @@ public class MyGcmManager extends GookumManager {
     private static final String GCM_SENDER_ID = "123456789012";
 
     private Context mContext;
-    private PreferenceHelper mPreferenceHelper;
-    
-    public MyGcmManager(Context context, PreferenceHelper preferenceHelper) {
+
+    public MyGcmManager(Context context) {
         mContext = context;
-        mPreferenceHelper = preferenceHelper;
     }
 
-    //region GookumManager abstract method implementations
     @Override
     protected boolean isGcmEnabled() {
-        return mPreferenceHelper.isPushEnabled();
+        return true;
     }
 
     @Override
@@ -79,35 +90,9 @@ public class MyGcmManager extends GookumManager {
     }
 
     @Override
-    protected int getPlayServicesResolutionRequestCode() {
-        return PLAY_SERVICES_RESOLUTION_REQUEST;
-    }
-
-    @Override
     protected Context getContext() {
         return mContext;
     }
-
-    @Override
-    protected String getGcmRegistrationId() {
-        return mPreferenceHelper.getGcmRegistrationId();
-    }
-
-    @Override
-    protected void setGcmRegistrationId(String registrationId) {
-        mPreferenceHelper.setGcmRegistrationId(registrationId);
-    }
-
-    @Override
-    protected int getSavedAppVersion() {
-        return mPreferenceHelper.getAppVersion();
-    }
-
-    @Override
-    protected void setSavedAppVersion(int savedAppVersion) {
-        mPreferenceHelper.setAppVersion(savedAppVersion);
-    }
-    //endregion
 }
 ```
 
@@ -128,7 +113,7 @@ public class MyActivity extends Activity {
             ft.commit();
         }
 
-        if (mMyGcmManager.arePlayServicesEnabled(this) && !mMyGcmManager.isRegistrationValid()) {
+        if (mMyGcmManager.checkIfGooglePlayServicesAreEnabled(this) && !mMyGcmManager.isRegistrationValid()) {
             mGcmManager.registerGcm(new GookumManager.RegisterGcmCallback() {
                 @Override
                 public void onGcmRegistered(String registrationId) {
@@ -153,7 +138,8 @@ public class MyActivity extends Activity {
 
     /*
      * In this example, RegisterGcmTokenTask would extend AsyncTask and do something
-     * useful for the app
+     * useful for the app; such as sending the device's registration ID to the push
+     * server
      */
 }
 ```
