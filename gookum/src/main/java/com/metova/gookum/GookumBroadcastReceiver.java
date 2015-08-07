@@ -18,7 +18,6 @@ public abstract class GookumBroadcastReceiver extends WakefulBroadcastReceiver {
 
     /**
      * Used to launch the appropriate subclass of IntentService
-     *
      * @return The class of the IntentService you are using (probably a subclass of GookumIntentService)
      */
     public abstract Class<? extends IntentService> getIntentServiceClass();

@@ -2,15 +2,23 @@ package com.metova.gookum;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import android.annotation.TargetApi;
 import android.app.IntentService;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Build;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.WakefulBroadcastReceiver;
 
 public abstract class GookumIntentService extends IntentService {
 
+    /**
+     * Constructor simply calls super (IntentService) constructor.
+     * @param classSimpleName Used to name the worker thread, important only for debugging
+     */
     public GookumIntentService(String classSimpleName) {
         super(classSimpleName);
     }
@@ -22,10 +30,10 @@ public abstract class GookumIntentService extends IntentService {
      * @param intent Incoming intent to handle
      */
     @Override
-    protected void onHandleIntent(Intent intent) {
-        handleIntentWithGcm(intent, GoogleCloudMessaging.getInstance(this));
+    protected final void onHandleIntent(Intent intent) {
+        handleIntentWithGcm(GoogleCloudMessaging.getInstance(this), intent);
 
-        GookumBroadcastReceiver.completeWakefulIntent(intent);
+        WakefulBroadcastReceiver.completeWakefulIntent(intent);
     }
 
     /**
@@ -33,33 +41,18 @@ public abstract class GookumIntentService extends IntentService {
      * which handles some boilerplate code. This is where you will parse the content of incoming Intents
      * and send the results as Notifications.
      *
-     * @param intent Incoming intent to handle
      * @param gcm Instance of GoogleCloudMessaging instance to use
+     * @param intent Incoming intent to handle
      */
-    protected abstract void handleIntentWithGcm(Intent intent, GoogleCloudMessaging gcm);
+    protected abstract void handleIntentWithGcm(GoogleCloudMessaging gcm, Intent intent);
 
     /**
-     * Creates and sends a basic notification. This method may be ignored if a more complicated
-     * or otherwise different style of notification is required.
-     *
-     * @param contentIntent The intent to launch upon clicking the notification
-     * @param title The first line of text in the notification
-     * @param message The second line of text in the notification
-     * @param smallIcon The small icon resource ID, displayed in the status bar and on the left of the notification
+     * Sends the provided Notification.
      * @param notificationId The ID by which Android will decide whether to show a new notification or replace an existing notification
+     * @param notification The Notification to send
      */
-    protected void sendNotification(PendingIntent contentIntent, String title, String message, int smallIcon, int notificationId) {
+    protected void sendNotification(int notificationId, Notification notification) {
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        Notification.Builder builder = new Notification.Builder(this)
-                .setContentIntent(contentIntent)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setSmallIcon(smallIcon)
-                .setStyle(new Notification.BigTextStyle().bigText(message))
-                .setAutoCancel(true)
-                .setDefaults(Notification.DEFAULT_ALL);
-
-        notificationManager.notify(notificationId, builder.build());
+        notificationManager.notify(notificationId, notification);
     }
 }
