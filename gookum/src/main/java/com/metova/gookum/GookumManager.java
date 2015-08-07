@@ -10,6 +10,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -35,7 +36,7 @@ public abstract class GookumManager {
      * Allows the user to set the GoogleCloudMessaging instance used for registration and un-registration (rather than
      * using the default), which is useful primarily for testing purposes.
      * @param gcmInstance The GoogleCloudMessaging instance used to register and unregister the app. Can be
-     *                    GoogleCloudMessaging.getInstance() or a mocked instance.
+     *        GoogleCloudMessaging.getInstance() or a mocked instance.
      */
     public void setGcmInstance(GoogleCloudMessaging gcmInstance) {
         Log.v(TAG, "setGcmInstance()");
@@ -82,7 +83,7 @@ public abstract class GookumManager {
 
     /**
      * Get the request code used to call startActivityForResult() upon a Google Play Services error.
-     * @return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT
+     * @return {@link #GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT}
      */
     protected int getPlayServicesResolutionRequestCode() {
         return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT;
@@ -108,7 +109,7 @@ public abstract class GookumManager {
      * Registers the current installation of the app with GCM.
      * @param callback The RegisterGcmCallback to call upon completion of attempted GCM registration
      */
-    public void registerGcm(final RegisterGcmCallback callback) {
+    public void registerGcm(@Nullable final RegisterGcmCallback callback) {
         Log.v(TAG, "registerGcm()");
         new AsyncTask<Void, Void, String>() {
             @Override
@@ -137,16 +138,24 @@ public abstract class GookumManager {
             @Override
             protected void onPostExecute(String registrationId) {
                 if (TextUtils.isEmpty(registrationId)) {
-                    callback.onError();
+                    Log.e(TAG, "registrationId came back empty; GCM registration failed");
+                    if (callback != null) {
+                        callback.onError();
+                    }
                 } else {
-                    callback.onGcmRegistered(registrationId);
+                    Log.i(TAG, "Successfully registered to GCM with registrationId = " + registrationId);
+                    if (callback != null) {
+                        callback.onGcmRegistered(registrationId);
+                    }
                 }
             }
 
             @Override
             protected void onCancelled(String registrationId) {
                 Log.w(TAG, "Attempted GCM registration when GCM is not enabled");
-                callback.onGcmDisabled();
+                if (callback != null) {
+                    callback.onGcmDisabled();
+                }
             }
         }.execute();
     }
@@ -155,7 +164,7 @@ public abstract class GookumManager {
      * Unregisters the current installation of the app from GCM.
      * @param callback The UnregisterGcmCallback to call upon completion of the attempted GCM un-registration
      */
-    public void unregisterGcm(final UnregisterGcmCallback callback) {
+    public void unregisterGcm(@Nullable final UnregisterGcmCallback callback) {
         Log.v(TAG, "unregisterGcm()");
         new AsyncTask<Void, Void, Boolean>() {
             @Override
@@ -177,9 +186,15 @@ public abstract class GookumManager {
             @Override
             protected void onPostExecute(Boolean didSucceed) {
                 if (didSucceed) {
-                    callback.onGcmUnregistered();
+                    Log.i(TAG, "Unregistered from GCM successfully");
+                    if (callback != null) {
+                        callback.onGcmUnregistered();
+                    }
                 } else {
-                    callback.onError();
+                    Log.e(TAG, "Failed to unregister from GCM");
+                    if (callback != null) {
+                        callback.onError();
+                    }
                 }
             }
         }.execute();
@@ -189,8 +204,8 @@ public abstract class GookumManager {
      * @param activity Activity on which to possibly display an error dialog
      * @return True if the device supports Google Play Services, otherwise false
      */
-    public boolean arePlayServicesEnabled(Activity activity) {
-        Log.v(TAG, "arePlayServicesEnabled()");
+    public boolean checkIfGooglePlayServicesAreEnabled(Activity activity) {
+        Log.v(TAG, "checkIfGooglePlayServicesAreEnabled()");
         int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getContext());
         if (resultCode != ConnectionResult.SUCCESS) {
             if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
@@ -237,19 +252,19 @@ public abstract class GookumManager {
     public interface RegisterGcmCallback {
 
         /**
-         * Called when GCM registration succeeds
+         * Called when GCM registration succeeds.
+         *
          * @param registrationId The app instance's registration ID, returned by GCM
          */
         void onGcmRegistered(String registrationId);
 
         /**
-         * Called when GCM registration fails
+         * Called when GCM registration fails.
          */
         void onError();
 
         /**
-         * Called when, upon attempting to register the app instance for GCM, it is determined
-         * that GCM is not enabled for the app in general.
+         * Called when, upon attempting to register the app instance for GCM, {@link #isGcmEnabled()} returns false.
          */
         void onGcmDisabled();
     }
@@ -257,12 +272,12 @@ public abstract class GookumManager {
     public interface UnregisterGcmCallback {
 
         /**
-         * Called when GCM un-registration succeeds
+         * Called when GCM un-registration succeeds.
          */
         void onGcmUnregistered();
 
         /**
-         * Called when GCM un-registration fails
+         * Called when GCM un-registration fails.
          */
         void onError();
     }

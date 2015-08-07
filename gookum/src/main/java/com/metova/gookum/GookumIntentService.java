@@ -11,6 +11,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.WakefulBroadcastReceiver;
 
 public abstract class GookumIntentService extends IntentService {
 
@@ -29,10 +30,10 @@ public abstract class GookumIntentService extends IntentService {
      * @param intent Incoming intent to handle
      */
     @Override
-    protected void onHandleIntent(Intent intent) {
+    protected final void onHandleIntent(Intent intent) {
         handleIntentWithGcm(GoogleCloudMessaging.getInstance(this), intent);
 
-        GookumBroadcastReceiver.completeWakefulIntent(intent);
+        WakefulBroadcastReceiver.completeWakefulIntent(intent);
     }
 
     /**
@@ -44,43 +45,6 @@ public abstract class GookumIntentService extends IntentService {
      * @param intent Incoming intent to handle
      */
     protected abstract void handleIntentWithGcm(GoogleCloudMessaging gcm, Intent intent);
-
-    /**
-     * Creates a basic NotificationCompat.Builder, while allowing the user to add to it.
-     * @param contentIntent The intent to launch upon clicking the notification
-     * @param title The first line of text in the notification
-     * @param message The second line of text in the notification
-     * @param smallIcon The small icon resource ID, displayed in the status bar and on the left of the notification
-     */
-    protected NotificationCompat.Builder createNotificationBuilder(PendingIntent contentIntent, String title,
-            String message, int smallIcon, NotificationCompat.Style style) {
-
-        return new NotificationCompat.Builder(this)
-                .setContentIntent(contentIntent)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setSmallIcon(smallIcon)
-                .setStyle(style);
-    }
-
-    /**
-     * Requires API level 16. Creates a basic Notification.Builder, while allowing the user to add to it.
-     * @param contentIntent The intent to launch upon clicking the notification
-     * @param title The first line of text in the notification
-     * @param message The second line of text in the notification
-     * @param smallIcon The small icon resource ID, displayed in the status bar and on the left of the notification
-     */
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
-    protected Notification.Builder sendNotification(PendingIntent contentIntent, String title,
-            String message, int smallIcon, Notification.Style style) {
-
-        return new Notification.Builder(this)
-                .setContentIntent(contentIntent)
-                .setContentTitle(title)
-                .setContentText(message)
-                .setSmallIcon(smallIcon)
-                .setStyle(style);
-    }
 
     /**
      * Sends the provided Notification.
