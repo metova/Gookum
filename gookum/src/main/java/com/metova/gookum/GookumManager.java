@@ -66,6 +66,22 @@ public abstract class GookumManager {
     }
 
     /**
+     * @return The version number of the app last time it registered to GCM
+     */
+    protected int getSavedAppVersion() {
+        return getGookumSharedPreferences().getInt(PREFERENCE_SAVED_APP_VERSION, APP_VERSION_NOT_SAVED);
+    }
+
+    /**
+     * @param appVersion The current app version, to save for checking in the future
+     */
+    protected void setSavedAppVersion(int appVersion) {
+        getGookumSharedPreferences().edit()
+                .putInt(PREFERENCE_SAVED_APP_VERSION, appVersion)
+                .apply();
+    }
+
+    /**
      * @return The app instance's stored GCM registration ID
      */
     protected String getGcmRegistrationId() {
@@ -90,26 +106,10 @@ public abstract class GookumManager {
     }
 
     /**
-     * @return The version number of the app last time it registered to GCM
-     */
-    protected int getSavedAppVersion() {
-        return getGookumSharedPreferences().getInt(PREFERENCE_SAVED_APP_VERSION, APP_VERSION_NOT_SAVED);
-    }
-
-    /**
-     * @param appVersion The current app version, to save for checking in the future
-     */
-    protected void setSavedAppVersion(int appVersion) {
-        getGookumSharedPreferences().edit()
-                .putInt(PREFERENCE_SAVED_APP_VERSION, appVersion)
-                .apply();
-    }
-
-    /**
      * Registers the current installation of the app with GCM.
      * @param callback The RegisterGcmCallback to call upon completion of attempted GCM registration
      */
-    public void registerGcm(@Nullable final RegisterGcmCallback callback) {
+    public void registerGcm(@Nullable final RegistrationCallback callback) {
         Log.v(TAG, "registerGcm()");
         new AsyncTask<Void, Void, String>() {
             @Override
@@ -145,7 +145,7 @@ public abstract class GookumManager {
                 } else {
                     Log.i(TAG, "Successfully registered to GCM with registrationId = " + registrationId);
                     if (callback != null) {
-                        callback.onGcmRegistered(registrationId);
+                        callback.onRegistered(registrationId);
                     }
                 }
             }
@@ -164,7 +164,7 @@ public abstract class GookumManager {
      * Unregisters the current installation of the app from GCM.
      * @param callback The UnregisterGcmCallback to call upon completion of the attempted GCM un-registration
      */
-    public void unregisterGcm(@Nullable final UnregisterGcmCallback callback) {
+    public void unregisterGcm(@Nullable final UnregistrationCallback callback) {
         Log.v(TAG, "unregisterGcm()");
         new AsyncTask<Void, Void, Boolean>() {
             @Override
@@ -188,7 +188,7 @@ public abstract class GookumManager {
                 if (didSucceed) {
                     Log.i(TAG, "Unregistered from GCM successfully");
                     if (callback != null) {
-                        callback.onGcmUnregistered();
+                        callback.onUnregistered();
                     }
                 } else {
                     Log.e(TAG, "Failed to unregister from GCM");
@@ -249,14 +249,14 @@ public abstract class GookumManager {
     protected abstract Context getContext();
     //endregion
 
-    public interface RegisterGcmCallback {
+    public interface RegistrationCallback {
 
         /**
          * Called when GCM registration succeeds.
          *
          * @param registrationId The app instance's registration ID, returned by GCM
          */
-        void onGcmRegistered(String registrationId);
+        void onRegistered(String registrationId);
 
         /**
          * Called when GCM registration fails.
@@ -269,12 +269,12 @@ public abstract class GookumManager {
         void onGcmDisabled();
     }
 
-    public interface UnregisterGcmCallback {
+    public interface UnregistrationCallback {
 
         /**
          * Called when GCM un-registration succeeds.
          */
-        void onGcmUnregistered();
+        void onUnregistered();
 
         /**
          * Called when GCM un-registration fails.
