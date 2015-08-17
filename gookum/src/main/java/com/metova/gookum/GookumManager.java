@@ -145,7 +145,7 @@ public abstract class GookumManager {
                 } else {
                     Log.i(TAG, "Successfully registered to GCM with registrationId = " + registrationId);
                     if (callback != null) {
-                        callback.onGcmRegistered(registrationId);
+                        callback.onRegistered(registrationId);
                     }
                 }
             }
@@ -188,7 +188,7 @@ public abstract class GookumManager {
                 if (didSucceed) {
                     Log.i(TAG, "Unregistered from GCM successfully");
                     if (callback != null) {
-                        callback.onGcmUnregistered();
+                        callback.onUnregistered();
                     }
                 } else {
                     Log.e(TAG, "Failed to unregister from GCM");
@@ -256,7 +256,7 @@ public abstract class GookumManager {
          *
          * @param registrationId The app instance's registration ID, returned by GCM
          */
-        void onGcmRegistered(String registrationId);
+        void onRegistered(String registrationId);
 
         /**
          * Called when GCM registration fails.
@@ -274,7 +274,7 @@ public abstract class GookumManager {
         /**
          * Called when GCM un-registration succeeds.
          */
-        void onGcmUnregistered();
+        void onUnregistered();
 
         /**
          * Called when GCM un-registration fails.
