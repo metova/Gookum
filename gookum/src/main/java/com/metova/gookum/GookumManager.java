@@ -4,13 +4,17 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
+import com.metova.gookum.service.RegistrationIntentService;
+
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -119,11 +123,15 @@ public abstract class GookumManager {
                     return null;
                 }
 
+                Context context = getContext();
+                context.startService(new Intent(context, getRegistrationIntentServiceClass()));
+
                 String registrationId;
                 try {
                     if (mGcm == null) {
                         mGcm = GoogleCloudMessaging.getInstance(getContext());
                     }
+
                     registrationId = mGcm.register(getGcmSenderId());
                     setGcmRegistrationId(registrationId);
                     setSavedAppVersion(getCurrentAppVersion());
@@ -223,12 +231,16 @@ public abstract class GookumManager {
     /**
      * @return The SharedPreferences file used by GookumManager to store the GcmRegistrationId.
      */
-    protected SharedPreferences getGookumSharedPreferences() {
+    public SharedPreferences getGookumSharedPreferences() {
         if (mSharedPreferences == null) {
-            mSharedPreferences = getContext().getSharedPreferences(GOOKUM_SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+            mSharedPreferences = getGookumSharedPreferences(getContext());
         }
 
         return mSharedPreferences;
+    }
+
+    public static SharedPreferences getGookumSharedPreferences(Context context) {
+        return context.getSharedPreferences(GOOKUM_SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
     }
 
     //region Abstract methods
@@ -237,6 +249,11 @@ public abstract class GookumManager {
      * @return True if push notifications are enabled in general; false otherwise
      */
     protected abstract boolean isGcmEnabled();
+
+    /**
+     * @return The implementation of RegistrationIntentService being used in your app.
+     */
+    protected abstract Class<? extends RegistrationIntentService> getRegistrationIntentServiceClass();
 
     /**
      * @return The "Project Number" of your API project on the Google Developers Console

@@ -1,4 +1,4 @@
-package com.metova.gookum;
+package com.metova.gookum.receiver;
 
 import android.app.Activity;
 import android.app.IntentService;
@@ -7,12 +7,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.v4.content.WakefulBroadcastReceiver;
 
+/**
+ * This class is deprecated. Use the default com.google.android.gms.gcm.GcmReceiver instead.
+ */
+@Deprecated
 public abstract class GookumBroadcastReceiver extends WakefulBroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        ComponentName comp = new ComponentName(context.getPackageName(), getIntentServiceClass().getName());
-        startWakefulService(context, (intent.setComponent(comp)));
+        ComponentName componentName = new ComponentName(context.getPackageName(), getIntentServiceClass().getName());
+        startWakefulService(context, (intent.setComponent(componentName)));
         setResultCode(Activity.RESULT_OK);
     }
 
