@@ -9,6 +9,16 @@ Gookum is an Android library made to simplify the processes of subscribing to an
 + Use a default GoogleCloudMessaging instance, or provide you own
 + React to registration/un-registration success and failure via callbacks
 
+## Installation ##
+
+To include Gookum into your project simply add the following dependency to your `build.gradle`. 
+
+```
+dependencies {
+    compile 'com.metova.gookum:gookum:0.2.2'
+}
+```
+
 ## Usage ##
 
 ### Example implementations ###
