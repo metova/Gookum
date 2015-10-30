@@ -14,9 +14,9 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.io.IOException;
 
@@ -209,9 +209,42 @@ public abstract class GookumManager {
     }
 
     /**
+     * @return The result code describing whether Google Play Services are enabled
+     */
+    public int getIsGooglePlayServicesEnabledResultCode() {
+        Log.v(TAG, "getIsGooglePlayServicesEnabledResultCode()");
+        return GooglePlayServicesUtil.isGooglePlayServicesAvailable(getContext());
+    }
+
+    /**
+     *
+     * @param googlePlayServicesResultCode The result code describing whether Google Play Services are enabled
+     * @param activity The Activity over which to show an error dialog
+     */
+    public void notifyGooglePlayServicesAvailability(int googlePlayServicesResultCode, Activity activity) {
+        if (googlePlayServicesResultCode == ConnectionResult.SUCCESS) {
+            Toast.makeText(getContext(), "Google Play Services are enabled.", Toast.LENGTH_SHORT)
+                    .show();
+        } else {
+            if (GooglePlayServicesUtil.isUserRecoverableError(googlePlayServicesResultCode)) {
+                GooglePlayServicesUtil.getErrorDialog(googlePlayServicesResultCode, activity, getPlayServicesResolutionRequestCode())
+                        .show();
+            } else {
+                String notSupported = "This device does not support Google Play Services";
+                Log.e(TAG, notSupported + ": error code " + googlePlayServicesResultCode);
+                Toast.makeText(getContext(), notSupported + ".", Toast.LENGTH_LONG)
+                        .show();
+            }
+        }
+    }
+
+    /**
+     * @deprecated Because this is an awkward method that does two different things.
+     *
      * @param activity Activity on which to possibly display an error dialog
      * @return True if the device supports Google Play Services, otherwise false
      */
+    @Deprecated
     public boolean checkIfGooglePlayServicesAreEnabled(Activity activity) {
         Log.v(TAG, "checkIfGooglePlayServicesAreEnabled()");
         int resultCode = GooglePlayServicesUtil.isGooglePlayServicesAvailable(getContext());
