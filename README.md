@@ -13,7 +13,7 @@ Gookum is an Android library made to simplify the processes of subscribing to an
 
 To include Gookum into your project, include this in your buildscript:
 
-```
+```Groovy
 repositories {
     maven { url "http://repo.metova.com/nexus/content/groups/public" }
 }
@@ -21,7 +21,7 @@ repositories {
 
 And add the following dependency to your `build.gradle`: 
 
-```
+```Groovy
 dependencies {
     compile 'com.metova:gookum:0.2.3'
 }
