@@ -1,10 +1,11 @@
 package com.metova.gookum;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
-import com.metova.gookum.service.RegistrationIntentService;
+import com.metova.gookum.service.GookumRegistrationIntentService;
 
 import android.app.Activity;
 import android.content.Context;
@@ -62,8 +63,8 @@ public abstract class GookumManager {
         Log.v(TAG, "getCurrentAppVersion()");
         try {
             Context context = getContext();
-            PackageInfo pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return pInfo.versionCode;
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return packageInfo.versionCode;
         } catch (PackageManager.NameNotFoundException e) {
             throw new RuntimeException("Could not get package name: " + e);
         }
@@ -110,11 +111,25 @@ public abstract class GookumManager {
     }
 
     /**
+     * Registers the app with GCM.
+     */
+    public void registerGcm() {
+        if (!isGcmEnabled()) {
+            Log.v(TAG, "registerGcm(): GCM is not enabled; returning without registering");
+            return;
+        }
+
+        Context context = getContext();
+        context.startService(new Intent(context, getRegistrationIntentServiceClass()));
+    }
+
+    /**
      * Registers the current installation of the app with GCM.
      * @param callback The RegisterGcmCallback to call upon completion of attempted GCM registration
      */
+    @Deprecated
     public void registerGcm(@Nullable final RegistrationCallback callback) {
-        Log.v(TAG, "registerGcm()");
+        Log.v(TAG, "registerGcm(RegistrationCallback)");
         new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... params) {
@@ -172,6 +187,7 @@ public abstract class GookumManager {
      * Unregisters the current installation of the app from GCM.
      * @param callback The UnregisterGcmCallback to call upon completion of the attempted GCM un-registration
      */
+    @Deprecated
     public void unregisterGcm(@Nullable final UnregistrationCallback callback) {
         Log.v(TAG, "unregisterGcm()");
         new AsyncTask<Void, Void, Boolean>() {
@@ -209,31 +225,38 @@ public abstract class GookumManager {
     }
 
     /**
-     * @return The result code describing whether Google Play Services are enabled
+     * @return The result code describing whether Play Services are enabled
      */
-    public int getIsGooglePlayServicesEnabledResultCode() {
-        Log.v(TAG, "getIsGooglePlayServicesEnabledResultCode()");
-        return GooglePlayServicesUtil.isGooglePlayServicesAvailable(getContext());
+    public int checkPlayServices() {
+        Log.v(TAG, "checkPlayServices()");
+        GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+        return apiAvailability.isGooglePlayServicesAvailable(getContext());
     }
 
     /**
-     *
-     * @param googlePlayServicesResultCode The result code describing whether Google Play Services are enabled
+     * @param playServicesResultCode The result code describing whether Play Services are enabled
      * @param activity The Activity over which to show an error dialog
+     *
+     * @return False if Play Services are not supported on this device, otherwise true.
      */
-    public void notifyGooglePlayServicesAvailability(int googlePlayServicesResultCode, Activity activity) {
-        if (googlePlayServicesResultCode == ConnectionResult.SUCCESS) {
-            Toast.makeText(getContext(), "Google Play Services are enabled.", Toast.LENGTH_SHORT)
+    public boolean notifyPlayServicesAvailability(int playServicesResultCode, Activity activity) {
+        Log.v(TAG, "notifyPlayServicesAvailability()");
+        if (playServicesResultCode == ConnectionResult.SUCCESS) {
+            Toast.makeText(getContext(), "Play Services are enabled.", Toast.LENGTH_SHORT)
                     .show();
+            return true;
         } else {
-            if (GooglePlayServicesUtil.isUserRecoverableError(googlePlayServicesResultCode)) {
-                GooglePlayServicesUtil.getErrorDialog(googlePlayServicesResultCode, activity, getPlayServicesResolutionRequestCode())
+            GoogleApiAvailability apiAvailability = GoogleApiAvailability.getInstance();
+            if (apiAvailability.isUserResolvableError(playServicesResultCode)) {
+                apiAvailability.getErrorDialog(activity, playServicesResultCode, getPlayServicesResolutionRequestCode())
                         .show();
+                return true;
             } else {
-                String notSupported = "This device does not support Google Play Services";
-                Log.e(TAG, notSupported + ": error code " + googlePlayServicesResultCode);
+                String notSupported = "This device does not support Play Services";
+                Log.e(TAG, notSupported + ": error code " + playServicesResultCode);
                 Toast.makeText(getContext(), notSupported + ".", Toast.LENGTH_LONG)
                         .show();
+                return false;
             }
         }
     }
@@ -242,7 +265,7 @@ public abstract class GookumManager {
      * @deprecated Because this is an awkward method that does two different things.
      *
      * @param activity Activity on which to possibly display an error dialog
-     * @return True if the device supports Google Play Services, otherwise false
+     * @return True if the device supports Play Services, otherwise false
      */
     @Deprecated
     public boolean checkIfGooglePlayServicesAreEnabled(Activity activity) {
@@ -252,7 +275,7 @@ public abstract class GookumManager {
             if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
                 GooglePlayServicesUtil.getErrorDialog(resultCode, activity, getPlayServicesResolutionRequestCode()).show();
             } else {
-                Log.i(TAG, "This device does not support Google Play Services.");
+                Log.i(TAG, "This device does not support Play Services.");
             }
 
             return false;
@@ -286,7 +309,7 @@ public abstract class GookumManager {
     /**
      * @return The implementation of RegistrationIntentService being used in your app.
      */
-    protected abstract Class<? extends RegistrationIntentService> getRegistrationIntentServiceClass();
+    protected abstract Class<? extends GookumRegistrationIntentService> getRegistrationIntentServiceClass();
 
     /**
      * @return The "Project Number" of your API project on the Google Developers Console

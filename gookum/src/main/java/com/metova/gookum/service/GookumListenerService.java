@@ -21,7 +21,7 @@ public abstract class GookumListenerService extends GcmListenerService {
         Log.v(TAG, "onMessageReceived(): from = " + from);
         Log.v(TAG, "onMessageReceived(): message = " + message);
 
-        if (from.startsWith(RegistrationIntentService.TOPICS_PREFIX)) {
+        if (from.startsWith(GookumRegistrationIntentService.TOPICS_PREFIX)) {
             onMessageReceivedFromTopic(from, message, data);
         } else {
             onMessageReceivedWithoutTopic(from, message, data);

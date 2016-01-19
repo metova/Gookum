@@ -13,9 +13,9 @@ import android.util.Log;
 
 import java.io.IOException;
 
-public abstract class RegistrationIntentService extends IntentService {
+public abstract class GookumRegistrationIntentService extends IntentService {
 
-    private static final String TAG = RegistrationIntentService.class.getSimpleName();
+    private static final String TAG = GookumRegistrationIntentService.class.getSimpleName();
 
     public static final String PREFERENCE_DID_SEND_TOKEN_TO_SERVER = "SENT_TOKEN_TO_SERVER";
 
@@ -24,7 +24,7 @@ public abstract class RegistrationIntentService extends IntentService {
 
     private SharedPreferences mSharedPreferences;
 
-    public RegistrationIntentService() {
+    public GookumRegistrationIntentService() {
         super(TAG);
     }
 

@@ -8,7 +8,7 @@ import android.content.Intent;
 import android.support.v4.content.WakefulBroadcastReceiver;
 
 /**
- * This class is deprecated. Use the default com.google.android.gms.gcm.GcmReceiver instead.
+ * This class is deprecated because it is no longer necessary. Use the default com.google.android.gms.gcm.GcmReceiver in your manifest instead.
  */
 @Deprecated
 public abstract class GookumBroadcastReceiver extends WakefulBroadcastReceiver {
