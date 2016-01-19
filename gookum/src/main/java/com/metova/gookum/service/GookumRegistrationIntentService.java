@@ -44,6 +44,8 @@ public abstract class GookumRegistrationIntentService extends IntentService {
             setDidSendTokenToServer(true);
         } catch (Exception exception) {
             Log.w(TAG, "Failed to complete token refresh: " + exception.getMessage());
+            onRegistrationTokenRefreshFailed(exception);
+
             setDidSendTokenToServer(false);
         }
     }
@@ -92,5 +94,7 @@ public abstract class GookumRegistrationIntentService extends IntentService {
      * @param token The InstanceID's GCM registration token.
      */
     protected abstract void onRegistrationTokenRefreshed(String token);
+
+    protected abstract void onRegistrationTokenRefreshFailed(Exception exception);
     //endregion
 }

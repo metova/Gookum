@@ -51,6 +51,7 @@ public abstract class GookumManager {
     /**
      * @return True if registration ID is stored and the current app version is registered, otherwise false
      */
+    @Deprecated
     public boolean isRegistrationValid() {
         Log.v(TAG, "isRegistrationValid()");
         return !TextUtils.isEmpty(getGcmRegistrationId()) && (getSavedAppVersion() == getCurrentAppVersion());
@@ -73,6 +74,7 @@ public abstract class GookumManager {
     /**
      * @return The version number of the app last time it registered to GCM
      */
+    @Deprecated
     protected int getSavedAppVersion() {
         return getGookumSharedPreferences().getInt(PREFERENCE_SAVED_APP_VERSION, APP_VERSION_NOT_SAVED);
     }
@@ -80,6 +82,7 @@ public abstract class GookumManager {
     /**
      * @param appVersion The current app version, to save for checking in the future
      */
+    @Deprecated
     protected void setSavedAppVersion(int appVersion) {
         getGookumSharedPreferences().edit()
                 .putInt(PREFERENCE_SAVED_APP_VERSION, appVersion)
@@ -89,6 +92,7 @@ public abstract class GookumManager {
     /**
      * @return The app instance's stored GCM registration ID
      */
+    @Deprecated
     protected String getGcmRegistrationId() {
         return getGookumSharedPreferences().getString(PREFERENCE_GCM_REGISTRATION_ID, null);
     }
@@ -96,6 +100,7 @@ public abstract class GookumManager {
     /**
      * @param gcmRegistrationId The app instance's GCM registration ID, to store
      */
+    @Deprecated
     protected void setGcmRegistrationId(String gcmRegistrationId) {
         getGookumSharedPreferences().edit()
                 .putString(PREFERENCE_GCM_REGISTRATION_ID, gcmRegistrationId)
@@ -103,10 +108,10 @@ public abstract class GookumManager {
     }
 
     /**
-     * Get the request code used to call startActivityForResult() upon a Google Play Services error.
+     * Get the request code used to call startActivityForResult() upon a Play Services error.
      * @return {@link #GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT}
      */
-    protected int getPlayServicesResolutionRequestCode() {
+    public int getPlayServicesResolutionRequestCode() {
         return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT;
     }
 
