@@ -19,7 +19,7 @@ public abstract class RegistrationIntentService extends IntentService {
 
     public static final String PREFERENCE_DID_SEND_TOKEN_TO_SERVER = "SENT_TOKEN_TO_SERVER";
 
-    private static final String TOPICS_PREFIX = "/topics/";
+    public static final String TOPICS_PREFIX = "/topics/";
     private static final String[] TOPICS_DEFAULT = {"global"};
 
     private SharedPreferences mSharedPreferences;
@@ -43,7 +43,7 @@ public abstract class RegistrationIntentService extends IntentService {
 
             setDidSendTokenToServer(true);
         } catch (Exception exception) {
-            Log.w(TAG, "Failed to complete token refresh");
+            Log.w(TAG, "Failed to complete token refresh: " + exception.getMessage());
             setDidSendTokenToServer(false);
         }
     }

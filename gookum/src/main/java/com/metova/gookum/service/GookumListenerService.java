@@ -14,8 +14,6 @@ public abstract class GookumListenerService extends GcmListenerService {
 
     protected static final String DATA_KEY_MESSAGE = "message";
 
-    protected static final String PREFIX_TOPICS = "/topics/";
-
     @Override
     public void onMessageReceived(String from, Bundle data) {
         String message = data.getString(DATA_KEY_MESSAGE);
@@ -23,7 +21,7 @@ public abstract class GookumListenerService extends GcmListenerService {
         Log.v(TAG, "onMessageReceived(): from = " + from);
         Log.v(TAG, "onMessageReceived(): message = " + message);
 
-        if (from.startsWith(PREFIX_TOPICS)) {
+        if (from.startsWith(RegistrationIntentService.TOPICS_PREFIX)) {
             onMessageReceivedFromTopic(from, message, data);
         } else {
             onMessageReceivedWithoutTopic(from, message, data);
