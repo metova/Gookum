@@ -33,8 +33,7 @@ public abstract class GookumRegistrationIntentService extends IntentService {
         mSharedPreferences = GookumManager.getGookumSharedPreferences(this);
 
         try {
-            InstanceID instanceId = InstanceID.getInstance(this);
-            String token = instanceId.getToken(getGcmSenderId(), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
+            String token = getInstanceID().getToken(getGcmSenderId(), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
 
             Log.v(TAG, "GCM registration token: " + token);
 
@@ -64,6 +63,10 @@ public abstract class GookumRegistrationIntentService extends IntentService {
      */
     protected boolean didSendTokenToServer() {
         return mSharedPreferences.getBoolean(PREFERENCE_DID_SEND_TOKEN_TO_SERVER, false);
+    }
+
+    protected InstanceID getInstanceID() {
+        return InstanceID.getInstance(this);
     }
 
     //region Internal

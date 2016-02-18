@@ -327,6 +327,7 @@ public abstract class GookumManager {
     protected abstract Context getContext();
     //endregion
 
+    @Deprecated
     public interface RegistrationCallback {
 
         /**
@@ -347,6 +348,7 @@ public abstract class GookumManager {
         void onGcmDisabled();
     }
 
+    @Deprecated
     public interface UnregistrationCallback {
 
         /**
