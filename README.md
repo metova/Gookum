@@ -6,13 +6,11 @@ notifications. "Gookum" is the sound you make when you try to pronounce "GCM" as
 
 ## Features ##
 + Easily receive incoming Intents and parse them into Notifications as desired
-+ Register to GCM with a single method call (same goes for unregistering)
-+ Use a default GoogleCloudMessaging instance, or provide you own
-+ React to registration/un-registration success and failure via callbacks
++ Register to GCM with a single method call
 
 ## Installation ##
 
-To include Gookum into your project, include this in your buildscript:
+To include Gookum in your project, include this in your project-level `build.gradle`:
 
 ```Groovy
 repositories {
@@ -20,11 +18,11 @@ repositories {
 }
 ```
 
-And add the following dependency to your `build.gradle`: 
+And add the following dependency to your app-level `build.gradle`: 
 
 ```Groovy
 dependencies {
-    compile 'com.metova:gookum:0.2.3'
+    compile 'com.metova:gookum:0.3.0'
 }
  ```
 
@@ -33,74 +31,101 @@ dependencies {
 ### Example implementations ###
 
 ```java
-public class MyIntentService extends GookumIntentService {
+public class MyRegistrationIntentService extends GookumRegistrationIntentService {
+    
+    @Override
+    protected String getGcmSenderId() {
+        return MyGookumManager.GCM_SENDER_ID;
+    }
+    
+    @Override
+    protected void onRegistrationTokenRefreshed(String token) {
+        Timber.v("onRegistrationTokenRefreshed(): %s", token);
+    
+        /* Possibly show some progress bar, or launch a new Activity via a callback. */
+    }
+    
+    @Override
+    protected void onRegistrationTokenRefreshFailed(Exception e) {
+        Timber.e("Encountered an error registering for push notifications");
+        ToastUtil.showToast(this, R.string.push_gcm_registration_error, Toast.LENGTH_LONG);
+        
+        /* Possibily retry with exponential backoff, if GCM is important to your app. */
+    }
+}
+```
 
-    private static final String TAG = MyIntentService.class.getSimpleName();
+```java
+public class MyInstanceIdListenerService extends GookumInstanceIdListenerService {
+    
+    @Override
+    public Class<? extends GookumRegistrationIntentService> getRegistrationIntentServiceClass() {
+        return MyRegistrationIntentService.class;
+    }
+}
+```
+
+```java
+public class MyListenerService extends GookumListenerService {
 
     public static final int REQUEST_CODE = 14;
+    
+    private static final String DEFAULT_PUSH_TITLE = "Check out this push notification";
+    private static final String DEFAULT_PUSH_MESSAGE = "ID: %d";
 
-    private static final String DEFAULT_PUSH_TITLE = "Gookum is real";
-    private static final String DEFAULT_PUSH_MESSAGE = "Check out this push notification";
-
-    public MyIntentService() {
-        super(MyIntentService.class.getSimpleName());
+    @Override
+    protected void onMessageReceivedFromTopic(String from, String message, Bundle data) {
+        onMessageReceivedWithoutTopic(from, message, data);
+        
+        /* Or, of course, you could use this method to actually do something related to the topic. */
     }
 
     @Override
-    protected void handleIntentWithGcm(GoogleCloudMessaging googleCloudMessaging, Intent intent) {
-        Log.v(TAG, "Received push notification: " + intent.hashCode());
+    protected void onMessageReceivedWithoutTopic(String from, String message, Bundle data) {
+        Timber.v("Received push notification: %s", from);
 
-        Bundle extras = intent.getExtras();
-        String message;
-        if (extras == null) {
-            message = DEFAULT_PUSH_MESSAGE;
-        } else {
-            message = extras.getString("message", DEFAULT_PUSH_MESSAGE);
+        int notificationId = (int) System.currentTimeMillis();
+        if (TextUtils.isEmpty(message)) {
+            message = String.format(DEFAULT_PUSH_MESSAGE, notificationId);
         }
 
         Intent mainActivityIntent = new Intent(this, MainActivity.class);
         mainActivityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        PendingIntent contentIntent = PendingIntent.getActivity(this, REQUEST_CODE,
-                mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent contentIntent = PendingIntent.getActivity(this, REQUEST_CODE, mainActivityIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        int notificationId = (int) System.currentTimeMillis();
-        Notification notification = new Notification.Builder(getApplicationContext())
+        Notification notification = new NotificationCompat.Builder(this)
                 .setContentIntent(contentIntent)
                 .setContentTitle(DEFAULT_PUSH_TITLE)
                 .setContentText(message)
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.mipmap.launcher)
+                .setColor(getColor(R.color.green))
+                .setAutoCancel(true)
                 .build();
 
         sendNotification(notificationId, notification);
-    }
 }
 ```
 
 ```java
-public class MyBroadcastReceiver extends GookumBroadcastReceiver {
-    @Override
-    public Class<? extends IntentService> getIntentServiceClass() {
-        return MyIntentService.class;
-    }
-}
-```
-
-```java
-public class MyGcmManager extends GookumManager {
-    private static final int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
+public class MyGookumManager extends GookumManager {
 
     private static final String GCM_SENDER_ID = "123456789012";
 
     private Context mContext;
 
-    public MyGcmManager(Context context) {
+    public MyGookumManager(Context context) {
         mContext = context;
     }
 
     @Override
     protected boolean isGcmEnabled() {
         return true;
+    }
+    
+    @Override
+    protected Class<? extends GookumRegistrationIntentService> getRegistrationIntentServiceClass() {
+        return MyRegistrationInstentService.class;
     }
 
     @Override
@@ -117,54 +142,59 @@ public class MyGcmManager extends GookumManager {
 
 ### Using GookumManager ###
 ```java
-public class MyActivity extends Activity {
+public class MainActivity extends Activity {
 
-    private MyGcmManager mMyGcmManager;
+    private MyGookumManager mMyGookummManager;
 
     /* ... */
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
         if (savedInstanceState == null) {
             FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
             ft.add(R.id.content, MyFragment.newInstance());
             ft.commit();
         }
 
-        if (mMyGcmManager.checkIfGooglePlayServicesAreEnabled(this) && !mMyGcmManager.isRegistrationValid()) {
-            mGcmManager.registerGcm(new GookumManager.RegisterGcmCallback() {
-                @Override
-                public void onGcmRegistered(String registrationId) {
-                    new RegisterGcmTokenTask().execute(registrationId);
-                }
+        registerForPush();
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerForPush();
+    }
+    
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-                @Override
-                public void onError() {
-                    Toast.makeText(MyActivity.this, getString(R.string.register_push_error),
-                            Toast.LENGTH_LONG).show();
-                }
-
-                @Override
-                public void onGcmDisabled() {
-                    Log.e(getClass().getSimpleName(),
-                            "GCM notifications are disabled; did not subscribe");
-                    /* You could pop up a dialog to turn on notifications here */
-                }
-            });
+        if (requestCode == mMyGookummManager.getPlayServicesResolutionRequestCode()) {
+            switch (resultCode) {
+                case Activity.RESULT_OK:
+                    mMyGookummManager.registerGcm();
+                    break;
+            }
         }
     }
 
-    /*
-     * In this example, RegisterGcmTokenTask would extend AsyncTask and do something
-     * useful for the app; such as sending the device's registration ID to the push
-     * server
-     */
+    protected void registerForPush() {
+        int playServicesResultCode = mMyGookummManager.checkPlayServices();
+        if (playServicesResultCode == ConnectionResult.SUCCESS) {
+            Timber.v("Registering for GCM");
+            mMyGookumManager.registerGcm();
+        } else {
+            Timber.w("Play Services error, attempting to remedy it");
+            mMyGookummManager.notifyPlayServicesAvailability(playServicesResultCode, this); // This may return to onActivityResult()
+        }
+    }
 }
 ```
 
 ## License ##
-Copyright 2015 Metova
+Copyright 2016 Metova
 
 Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in
 compliance with the License. You may obtain a copy of the License at
