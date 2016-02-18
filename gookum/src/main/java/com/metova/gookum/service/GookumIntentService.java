@@ -1,4 +1,4 @@
-package com.metova.gookum;
+package com.metova.gookum.service;
 
 import com.google.android.gms.gcm.GoogleCloudMessaging;
 
@@ -13,6 +13,7 @@ import android.os.Build;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.WakefulBroadcastReceiver;
 
+@Deprecated
 public abstract class GookumIntentService extends IntentService {
 
     /**
