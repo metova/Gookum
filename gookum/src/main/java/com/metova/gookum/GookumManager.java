@@ -20,6 +20,9 @@ import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 
 public abstract class GookumManager {
 
@@ -31,11 +34,14 @@ public abstract class GookumManager {
 
     protected static final String GOOKUM_SHARED_PREFERENCES_NAME = "GOOKUM_SHARED_PREFERENCES";
 
+    private static final String PREFERENCE_REGISTRATION_TOKEN = "REGISTRATION_TOKEN";
     private static final String PREFERENCE_GCM_REGISTRATION_ID = "GCM_REGISTRATION_ID";
     private static final String PREFERENCE_SAVED_APP_VERSION = "SAVED_APP_VERSION";
 
     private GoogleCloudMessaging mGcm;
     private SharedPreferences mSharedPreferences;
+
+    private static Set<RegistrationCallback> sRegistrationCallbacks = new HashSet<>();
 
     /**
      * Allows the user to set the GoogleCloudMessaging instance used for registration and un-registration (rather than
@@ -113,6 +119,42 @@ public abstract class GookumManager {
      */
     public int getPlayServicesResolutionRequestCode() {
         return GOOKUM_PLAY_SERVICES_RESOLUTION_REQUEST_CODE_DEFAULT;
+    }
+
+    /**
+     * This method is not static even though it could be, to ensure that callbacks are only controlled
+     * by owners of this GookumManager.
+     *
+     * @param registrationCallback The callback instance to add.
+     */
+    public void addRegistrationCallback(RegistrationCallback registrationCallback) {
+        sRegistrationCallbacks.add(registrationCallback);
+    }
+
+    /**
+     * This method is not static even though it could be, to ensure that callbacks are only controlled
+     * by owners of this GookumManager.
+     *
+     * @param registrationCallback The callback instance to remove.
+     */
+    public void removeRegistrationCallback(RegistrationCallback registrationCallback) {
+        sRegistrationCallbacks.remove(registrationCallback);
+    }
+
+    /**
+     * This method is not static even though it could be, to ensure that callbacks are only controlled
+     * by owners of this GookumManager.
+     *
+     * @param clazz All instances of this class will be removed.
+     */
+    public void removeRegistrationCallbacks(Class<? extends RegistrationCallback> clazz) {
+        Iterator<RegistrationCallback> iterator = sRegistrationCallbacks.iterator();
+        while (iterator.hasNext()) {
+            RegistrationCallback registrationCallback = iterator.next();
+            if (clazz.isInstance(registrationCallback)) {
+                iterator.remove();
+            }
+        }
     }
 
     /**
@@ -300,8 +342,18 @@ public abstract class GookumManager {
         return mSharedPreferences;
     }
 
-    public static SharedPreferences getGookumSharedPreferences(Context context) {
-        return context.getSharedPreferences(GOOKUM_SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+    /**
+     * @return True if a registration token is stored in this manager
+     */
+    public boolean isRegistered(Context context) {
+        return getGookumSharedPreferences(context).getString(PREFERENCE_REGISTRATION_TOKEN, null) != null;
+    }
+
+    /**
+     * @return The registration token that is stored in this manager. Null if none is stored.
+     */
+    public String getRegistrationToken(Context context) {
+        return getGookumSharedPreferences(context).getString(PREFERENCE_REGISTRATION_TOKEN, null);
     }
 
     //region Abstract methods
@@ -327,24 +379,57 @@ public abstract class GookumManager {
     protected abstract Context getContext();
     //endregion
 
-    @Deprecated
+    /**
+     * @return The SharedPreferences instance used by Gookum to store
+     */
+    public static SharedPreferences getGookumSharedPreferences(Context context) {
+        return context.getSharedPreferences(GOOKUM_SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+    }
+
+    /**
+     * Stores the registration token. If {@param registrationToken} is null, calls onUnRegistered() for each
+     * {@link RegistrationCallback}; else calls onRegistered() for each one.
+     *
+     * @param registrationToken The registration token to store in Gookum's SharedPreferences.
+     */
+    public static void setRegistrationToken(Context context, String registrationToken) {
+        getGookumSharedPreferences(context).edit()
+                .putString(PREFERENCE_REGISTRATION_TOKEN, registrationToken)
+                .apply();
+
+        for (RegistrationCallback registrationCallback : sRegistrationCallbacks) {
+            if (registrationToken == null) {
+                registrationCallback.onUnRegistered();
+            } else {
+                registrationCallback.onRegistered(registrationToken);
+            }
+        }
+    }
+
     public interface RegistrationCallback {
 
         /**
          * Called when GCM registration succeeds.
          *
-         * @param registrationId The app instance's registration ID, returned by GCM
+         * @param registrationToken The app instance's registration ID, returned by GCM
          */
-        void onRegistered(String registrationId);
+        void onRegistered(String registrationToken);
+
+        /**
+         * Called when GCM is un-registered or registration fails.
+         */
+        void onUnRegistered();
 
         /**
          * Called when GCM registration fails.
          */
+        @Deprecated
         void onError();
 
         /**
          * Called when, upon attempting to register the app instance for GCM, {@link #isGcmEnabled()} returns false.
          */
+        @Deprecated
         void onGcmDisabled();
     }
 

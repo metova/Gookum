@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 
 group = 'com.metova'
-version = '0.3.1'
+version = '0.3.2'
 
 android {
     compileSdkVersion 23
@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         minSdkVersion 9
-        versionCode 9
+        versionCode 10
         versionName version
     }
     buildTypes {

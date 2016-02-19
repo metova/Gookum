@@ -8,7 +8,6 @@ import com.metova.gookum.GookumManager;
 
 import android.app.IntentService;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.util.Log;
 
 import java.io.IOException;
@@ -17,12 +16,8 @@ public abstract class GookumRegistrationIntentService extends IntentService {
 
     private static final String TAG = GookumRegistrationIntentService.class.getSimpleName();
 
-    public static final String PREFERENCE_DID_SEND_TOKEN_TO_SERVER = "SENT_TOKEN_TO_SERVER";
-
     public static final String TOPICS_PREFIX = "/topics/";
     private static final String[] TOPICS_DEFAULT = {"global"};
-
-    private SharedPreferences mSharedPreferences;
 
     public GookumRegistrationIntentService() {
         super(TAG);
@@ -30,8 +25,6 @@ public abstract class GookumRegistrationIntentService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        mSharedPreferences = GookumManager.getGookumSharedPreferences(this);
-
         try {
             String token = getInstanceID().getToken(getGcmSenderId(), GoogleCloudMessaging.INSTANCE_ID_SCOPE, null);
 
@@ -40,12 +33,12 @@ public abstract class GookumRegistrationIntentService extends IntentService {
             onRegistrationTokenRefreshed(token);
             subscribeTopics(token);
 
-            setDidSendTokenToServer(true);
+            saveToken(token);
         } catch (Exception exception) {
             Log.w(TAG, "Failed to complete token refresh: " + exception.getMessage());
             onRegistrationTokenRefreshFailed(exception);
 
-            setDidSendTokenToServer(false);
+            saveToken(null);
         }
     }
 
@@ -61,8 +54,9 @@ public abstract class GookumRegistrationIntentService extends IntentService {
     /**
      * @return True if this Service successfully sent the registration token to the server, otherwise false.
      */
+    @Deprecated
     protected boolean didSendTokenToServer() {
-        return mSharedPreferences.getBoolean(PREFERENCE_DID_SEND_TOKEN_TO_SERVER, false);
+        return false;
     }
 
     protected InstanceID getInstanceID() {
@@ -70,15 +64,14 @@ public abstract class GookumRegistrationIntentService extends IntentService {
     }
 
     //region Internal
-    private void setDidSendTokenToServer(boolean didSendTokenToServer) {
-        mSharedPreferences.edit()
-                .putBoolean(PREFERENCE_DID_SEND_TOKEN_TO_SERVER, didSendTokenToServer)
-                .apply();
+    private void saveToken(String token) {
+        GookumManager.setRegistrationToken(this, token);
     }
 
     private void subscribeTopics(String token) throws IOException {
+        GcmPubSub pubSub = GcmPubSub.getInstance(this);
+
         for (String topic : getTopics()) {
-            GcmPubSub pubSub = GcmPubSub.getInstance(this);
             pubSub.subscribe(token, TOPICS_PREFIX + topic, null);
         }
     }
